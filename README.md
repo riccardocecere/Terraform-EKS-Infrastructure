@@ -16,7 +16,7 @@ This infrastructure can host several high scaling microservices taking into acco
 - **Business Continuity**
     EKS is the managed Kubernetes controlplane by AWS. It contains only master nodes and the kubernetes API; the microservices are hosted in the worker nodes which are connected and registered to controlplanea and distributed into 3 AZs (eu-west-1a, eu-west-1b, eu-west-1c). 
     
-    ![EKS-architecture](./docs/EKS-K8S-architecture.png)
+    ![EKS-architecture](./docs/EKS-K8s-architecture.png)
 
     As an infrastructure orchestrator EKS is responsible for the autoscaling of the worker nodes (up and down).
     The EKS service is responsible for the autoscaling of the worker nodes managed by NodeGroups objects and released on EC2 instances. The key component for the autoscaling is the kubernetes agent cluster-autoscaler that monitors the utilization state of the worker nodes and scales up and down based on the collected metrics in collaboration with the NodeGroup component managed by AWS. The possibility to have multiple instances of worker nodes make the cluster more consistence to fault tollerance and other types of incident that could reduce the availability of the workloads hosted in the cluster. 
