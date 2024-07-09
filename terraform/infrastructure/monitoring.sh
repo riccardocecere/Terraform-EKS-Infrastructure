@@ -13,3 +13,5 @@ helm install grafana grafana/grafana --namespace monitoring
 #Deploy Elastic Stack
 kubectl create -f https://download.elastic.co/downloads/eck/2.13.0/crds.yaml
 kubectl apply -f https://download.elastic.co/downloads/eck/2.13.0/operator.yaml
+kubectl apply -f ./modules/k8s/elk/elastic.yaml
+kubectl apply -f ./modules/k8s/elk/kibana.yaml

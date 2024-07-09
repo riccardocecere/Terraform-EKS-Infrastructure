@@ -101,8 +101,19 @@ To access to the Elastic dashboard launch the command below:
 Then connect to the local endpoint on your machine
 <http://locahost:9200>
 
+To know the credential launch the command below:
+> PASSWORD=$(kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}') \
+> echo $PASSWORD
+
+Then login with *elastic* user
+
 To access to the Kibana dashboard launch the command below:
 > kubectl port-forward service/quickstart-kb-http 5601
 
 Then connect to the local endpoint on your machine
 <http://locahost:5601>
+
+To access with credential to kibana password launch the following command:
+> kubectl get secret quickstart-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode; echo
+
+Then login with *elastic* user
