@@ -39,3 +39,14 @@ module "eks" {
     }
   }
 }
+
+module "k8s" {
+  source = "./modules/k8s"
+  node_group_name = module.eks.node_group.worker_group.node_group_name
+  region          = var.region
+  vpc_id          = module.network.vpc_id
+  cluster_id      = module.eks.cluster_id
+  cluster_name    = module.eks.cluster_name
+  openid_provider_url = module.eks.openid_provider_url
+  openid_provider_arn = module.eks.oidc_provider_arn
+}

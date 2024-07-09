@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-target
+  labels:
+    service: nginx-target
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/instance: nginx-deploy
+    app.kubernetes.io/version: "1.17.1"
+    app.kubernetes.io/component: ingress-controller
+    app.kubernetes.io/part-of: network
+    app.kubernetes.io/managed-by: kubernetes
+    app.kubernetes.io/created-by: controller-manager
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      service: nginx-target
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        service: nginx-target
+        network/bp-net: "true"
+        app.kubernetes.io/name: nginx
+        app.kubernetes.io/instance: nginx-pod
+        app.kubernetes.io/version: "1.17.1"
+        app.kubernetes.io/component: ingress-controller
+        app.kubernetes.io/part-of: network
+        app.kubernetes.io/managed-by: kubernetes
+        app.kubernetes.io/created-by: controller-manager
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: nginx-target
+          imagePullPolicy: IfNotPresent
+          image: 'nginx'
+          resources:
+            requests:
+              #ephemeral-storage: "1Gi"
+              memory: "100Mi"
+              cpu: "100m"
+            limits:
+              #ephemeral-storage: "1Gi"
+              memory: "100Mi"
+              cpu: "100m"
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - "service nginx status || exit 1"
+            failureThreshold: 5
+            initialDelaySeconds: 120
+            periodSeconds: 5
+            timeoutSeconds: 5
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+              name: nginx-target-conf
+            - mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+              readOnly: true
+              name: nginx-target-conf
+            - name: ephemeral
+              mountPath: "/tmp"
+      volumes:
+        - name: ephemeral
+          emptyDir: {}
+        - name: nginx-target-conf
+          configMap:
+            name: nginx-target-conf
+            items:
+            - key: nginx.conf
+              path: nginx.conf
+            - key: default.conf
+              path: default.conf

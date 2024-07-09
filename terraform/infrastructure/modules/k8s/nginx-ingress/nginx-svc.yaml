@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/instance: nginx-service
+    app.kubernetes.io/version: "1.17.1"
+    app.kubernetes.io/component: ingress-controller
+    app.kubernetes.io/part-of: network
+    app.kubernetes.io/managed-by: kubernetes
+    app.kubernetes.io/created-by: controller-manager
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  selector:
+    service: nginx

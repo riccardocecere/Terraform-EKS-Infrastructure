@@ -221,6 +221,14 @@ resource "aws_iam_openid_connect_provider" "eks" {
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
+# resource "aws_eks_identity_provider_config" "eks" {
+#   cluster_name = aws_eks_cluster.main.name
+#   oidc {
+#     identity_provider_config_name = "oidc"
+#     client_id                     = aws_iam_openid_connect_provider.eks.id
+#     issuer_url                    = aws_eks_cluster.main.identity[0].oidc[0].issuer
+#   }
+# }
 
 ############################################################################################################
 ### IAM ROLES
@@ -391,6 +399,17 @@ resource "aws_security_group" "eks_nodes_sg" {
   }
 }
 
+# Unneccessary because all outbound traffic from worker nodes is allowed by worker_node_egress_internet rule
+# resource "aws_security_group_rule" "worker_node_to_control_plane_egress_https" {
+#   type                     = "egress"
+#   from_port                = 443
+#   to_port                  = 443
+#   protocol                 = "tcp"
+#   security_group_id        = aws_security_group.eks_nodes_sg.id
+#   source_security_group_id = aws_security_group.eks_cluster_sg.id
+#   description              = "Allow worked node to control plane/Kubernetes API egress for HTTPS"
+# }
+
 resource "aws_security_group_rule" "worker_node_ingress_nginx" {
   type                     = "ingress"
   from_port                = 8443
@@ -546,7 +565,58 @@ resource "aws_eks_addon" "main" {
   addon_version               = data.aws_eks_addon_version.main[each.key].version
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
-  depends_on = [
-    aws_eks_node_group.main
-  ]
+  depends_on = [aws_eks_node_group.main]
+}
+
+data "aws_iam_policy_document" "eks_cluster_autoscaler_assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:cluster-autoscaler"]
+    }
+
+    principals {
+      identifiers = [aws_iam_openid_connect_provider.eks.arn]
+      type        = "Federated"
+    }
+  }
+}
+
+resource "aws_iam_role" "eks_cluster_autoscaler" {
+  assume_role_policy = data.aws_iam_policy_document.eks_cluster_autoscaler_assume_role_policy.json
+  name               = "eks-cluster-autoscaler"
+}
+
+resource "aws_iam_policy" "eks_cluster_autoscaler" {
+  name = "eks-cluster-autoscaler"
+
+  policy = jsonencode({
+    Statement = [{
+      Action = [
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeLaunchConfigurations",
+                "autoscaling:DescribeTags",
+                "autoscaling:SetDesiredCapacity",
+                "autoscaling:TerminateInstanceInAutoScalingGroup",
+                "ec2:DescribeLaunchTemplateVersions"
+            ]
+      Effect   = "Allow"
+      Resource = "*"
+    }]
+    Version = "2012-10-17"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_cluster_autoscaler_attach" {
+  role       = aws_iam_role.eks_cluster_autoscaler.name
+  policy_arn = aws_iam_policy.eks_cluster_autoscaler.arn
+}
+
+output "eks_cluster_autoscaler_arn" {
+  value = aws_iam_role.eks_cluster_autoscaler.arn
 }
