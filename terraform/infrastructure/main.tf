@@ -20,3 +20,22 @@ module "network" {
   }
 }
 
+module "eks" {
+  source = "./modules/eks"
+
+  region          = var.region
+  cluster_name    = var.cluster_name
+  private_subnets = module.network.private_subnets
+  public_subnets  = module.network.public_subnets
+  vpc_id          = module.network.vpc_id
+
+  managed_node_groups = {
+    worker_group = {
+      name           = "worker-node-group"
+      desired_size   = 2
+      min_size       = 1
+      max_size       = 3
+      instance_types = ["t3a.small"]
+    }
+  }
+}
